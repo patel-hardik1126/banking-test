@@ -1,0 +1,109 @@
+# Docker-compose for development purpose only
+services:
+  backend-app:
+    build:
+      context: ./backend
+    volumes:
+      - ./backend:/usr/src/app/
+    restart: on-failure
+    depends_on:
+      mssqldatabase:
+        condition: service_healthy
+    networks:
+      - app-network
+    env_file:
+      - .env
+    command: sh -c "python manage.py makemigrations && python manage.py migrate && 
+                    python manage.py runserver 0.0.0.0:${BACKEND_APPLICATION_PORT}"
+    ports:
+      - "${BACKEND_APPLICATION_PORT}:${BACKEND_APPLICATION_PORT}"
+
+  express-app:
+    build:
+      context: ./express_backend
+    command: ["npm", "run", "dev"]
+    volumes:
+      - ./express_backend:/app/
+      - /app/node_modules
+    restart: on-failure
+    depends_on:
+      - mongodatabase
+    networks:
+      - app-network
+    env_file:
+      - .env
+    environment:
+      - MONGO_URI=mongodb://${MONGO_DATABASE_USER}:${MONGO_DATABASE_PASSWORD}@${MONGO_DATABASE_HOST}:${MONGO_DATABASE_PORT}/${MONGO_DATABASE_NAME}
+    ports:
+      - "${EXPRESS_APPLICATION_PORT}:${EXPRESS_APPLICATION_PORT}"
+    stdin_open: true
+    tty: true
+
+  mongodatabase:
+    image: mongo:latest
+    command: ["mongod", "--bind_ip_all"]
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_DATABASE_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_DATABASE_PASSWORD}
+    ports:
+      - "${MONGO_DATABASE_PORT}:${MONGO_DATABASE_PORT}"
+    volumes:
+      - ./dbdata/mongo:/data/db  # Mapping for MongoDB data     
+    networks:
+      - app-network
+
+  mssqldatabase:
+    build:
+      context: ./mssqldatabase
+    environment:
+      - SA_PASSWORD=${MSSQL_SA_PASSWORD}
+      - DATABASE_NAME=${DATABASE_NAME}
+      - DATABASE_USER=${DATABASE_USER}
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+      - ACCEPT_EULA=Y
+      - TZ=America/Toronto
+      - MSSQL_PID=Express
+    ports:
+      - "${DATABASE_PORT}:1433"
+    volumes:
+      - ./dbdata/mssql:/var/opt/mssql/data
+    entrypoint: ["/docker-entrypoint-initdb.d/mssql-entrypoint.sh"] 
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U "${DATABASE_USER}" -P "${DATABASE_PASSWORD}" -Q "SELECT 1" || exit 1 
+      interval: 20s
+      timeout: 30s
+      retries: 10
+    networks:
+      - app-network
+    restart: on-failure
+
+  frontend-app:
+    build: ./frontend
+    command: ["yarn", "dev", "-p", "${FRONTEND_APPLICATION_PORT}"] 
+    ports:
+      - "${FRONTEND_APPLICATION_PORT}:${FRONTEND_APPLICATION_PORT}"
+    volumes:
+      - ./frontend:/app/
+      - /app/node_modules
+    restart: on-failure
+    depends_on:
+      - backend-app
+      - express-app
+    networks:
+      - app-network
+    environment:
+      - NEXT_PUBLIC_BASE_URL=${NEXT_PUBLIC_BASE_URL}
+      - NEXT_PUBLIC_DJANGO_API_URL=${NEXT_PUBLIC_DJANGO_API_URL}
+      - NEXT_PUBLIC_EXPRESS_API_URL=${NEXT_PUBLIC_EXPRESS_API_URL}
+      - NEXT_WEBPACK_USEPOLLING=1
+      - CHOKIDAR_USEPOLLING=true
+      - NEXT_TELEMETRY_DISABLED=1
+
+networks:
+  app-network:
+    driver: bridge
+
+
+
+  

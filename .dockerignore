@@ -1,0 +1,53 @@
+# Ignore the .git directory and any Git files
+.git
+.gitignore
+
+# Node.js dependencies and build artifacts (for Node.js projects)
+node_modules
+npm-debug.log
+yarn-error.log
+package-lock.json
+yarn.lock
+dist
+build
+
+# Python dependencies and cache (for Python projects)
+__pycache__/
+*.py[cod]
+.Python
+env/
+venv/
+*.egg-info/
+*.egg
+requirements.txt
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS generated files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Icon?
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+
+# Docker-related files
+docker-compose.override.yml
+docker-compose.dev.yml
+Dockerfile.dev
+
+# Any other files you want to ignore
+*.md
+README.md
+
+**/dbdata

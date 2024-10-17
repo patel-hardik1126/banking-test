@@ -1,0 +1,15 @@
+python-dotenv
+six
+Django==4.0
+django-cors-headers
+djangorestframework>=3.13.1
+djangorestframework-simplejwt
+django-filter
+pymssql>=2.2
+mssql-django
+pyodbc>=4.0
+django-unixtimestampfield
+sqlparse==0.5.0
+django-debug-toolbar
+json_log_formatter
+drf-nested-routers
